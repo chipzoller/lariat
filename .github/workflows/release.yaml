@@ -62,6 +62,13 @@ jobs:
         echo "Digest from image is: $DIGEST"
         echo "digest=$DIGEST" >> $GITHUB_OUTPUT
 
+    - name: Upload SBOM
+      uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+      with:
+        name: sbom.json
+        path: sbom.json
+        if-no-files-found: error
+
   # Use the container SLSA provenance generator.
   provenance:
     permissions:
@@ -129,6 +136,11 @@ jobs:
       with:
         name: scan.json
 
+    - name: Download SBOM
+      uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
+      with:
+        name: sbom.json
+
     # Detect potential tampering with the scan file by comparing the pre-upload digest in the previous
     # job with the post-download digest in this job. Fail if there is a mismatch.
     - name: Verify scan
@@ -145,8 +157,8 @@ jobs:
       with:
         cosign-release: v2.2.4
 
-    - name: Fetch SBOM
-      run: cosign download sbom ${{ env.IMAGE }} > sbom.json
+    # - name: Fetch SBOM
+    #   run: cosign download sbom ${{ env.IMAGE }} > sbom.json
 
     - name: Log in to GHCR
       uses: docker/login-action@e92390c5fb421da1463c202d546fed0ec5c39f20 # v3.1.0
@@ -160,22 +172,16 @@ jobs:
         cosign sign -a sha=${{ github.sha }} -a run_id=${{ github.run_id }} -a repo=${{ github.repository }} -a workflow=${{ github.workflow }} ${{ env.IMAGE }} --output-signature=./signature.sig -y
         echo "## Supply Chain Summary" >> $GITHUB_STEP_SUMMARY
         echo "Image signed: :heavy_check_mark:" >> $GITHUB_STEP_SUMMARY
-      # env:
-      #   COSIGN_EXPERIMENTAL: "true"
 
     - name: Attest SBOM
       run: |
         cosign attest --predicate sbom.json --type cyclonedx ${{ env.IMAGE }} -y
         echo "Image SBOM attested: :heavy_check_mark:" >> $GITHUB_STEP_SUMMARY
-      # env:
-      #   COSIGN_EXPERIMENTAL: "true"
 
     - name: Attest Scan
       run: |
         cosign attest --predicate scan.json --type vuln ${{ env.IMAGE }} -y
         echo "Image vulnerability scan attested:  :heavy_check_mark:" >> $GITHUB_STEP_SUMMARY
-      # env:
-      #   COSIGN_EXPERIMENTAL: "true"
 
     - name: Add SBOM to release assets
       uses: softprops/action-gh-release@v2
