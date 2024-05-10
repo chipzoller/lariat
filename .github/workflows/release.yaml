@@ -131,15 +131,15 @@ jobs:
       SCAN_DIGEST: "${{ needs.scan.outputs.scan-digest }}"
     needs: [provenance, scan, build]
     steps:
-    - name: Download scan
+    - name: Download files # scan
       uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
-      with:
-        name: scan.json
+    #   with:
+    #     name: scan.json
 
-    - name: Download SBOM
-      uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
-      with:
-        name: sbom.json
+    # - name: Download SBOM
+    #   uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
+    #   with:
+    #     name: sbom.json
 
     # Detect potential tampering with the scan file by comparing the pre-upload digest in the previous
     # job with the post-download digest in this job. Fail if there is a mismatch.
@@ -151,6 +151,7 @@ jobs:
         echo "The current computed hash for scan.json is: $COMPUTED_HASH"
         echo "If the two above hashes don't match, scan.json has been tampered with."
         echo "$SCAN_DIGEST scan.json" | sha256sum --strict --check --status || exit -2
+        ls -l
 
     - name: Install Cosign
       uses: sigstore/cosign-installer@59acb6260d9c0ba8f4a2f9d9b48431a222b68e20 # v3.5.0
