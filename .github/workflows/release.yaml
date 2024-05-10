@@ -51,6 +51,8 @@ jobs:
         echo "Built image: $IMAGE" >> $GITHUB_STEP_SUMMARY
         echo "IMAGE=$IMAGE" >> $GITHUB_ENV
         echo "image=$IMAGE" >> $GITHUB_OUTPUT
+        echo "List files"
+        ls -l
       env:
         KO_DOCKER_REPO: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
@@ -131,15 +133,17 @@ jobs:
       SCAN_DIGEST: "${{ needs.scan.outputs.scan-digest }}"
     needs: [provenance, scan, build]
     steps:
-    - name: Download scan
+    - name: Download files
       uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
       with:
-        name: scan.json
+        # name: scan.json
+        merge-multiple: false
+        path: ./
 
-    - name: Download SBOM
-      uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
-      with:
-        name: sbom.json
+    # - name: Download SBOM
+    #   uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
+    #   with:
+    #     name: sbom.json
 
     # Detect potential tampering with the scan file by comparing the pre-upload digest in the previous
     # job with the post-download digest in this job. Fail if there is a mismatch.
