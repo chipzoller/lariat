@@ -133,8 +133,8 @@ jobs:
     steps:
     - name: Download files
       uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
-      with:
-        path: ./
+      # with:
+      #   path: .
     #     name: scan.json
 
     # - name: Download SBOM
@@ -159,9 +159,6 @@ jobs:
       with:
         cosign-release: v2.2.4
 
-    # - name: Fetch SBOM
-    #   run: cosign download sbom ${{ env.IMAGE }} > sbom.json
-
     - name: Log in to GHCR
       uses: docker/login-action@e92390c5fb421da1463c202d546fed0ec5c39f20 # v3.1.0
       with:
@@ -185,7 +182,7 @@ jobs:
         cosign attest --predicate scan.json --type vuln ${{ env.IMAGE }} -y
         echo "Image vulnerability scan attested:  :heavy_check_mark:" >> $GITHUB_STEP_SUMMARY
 
-    - name: Add SBOM to release assets
+    - name: Add files to release assets
       uses: softprops/action-gh-release@v2
       with:
         files: |
