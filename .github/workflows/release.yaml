@@ -148,11 +148,11 @@ jobs:
       run: |
         set -euo pipefail
         echo "Hash of scan.json should be: $SCAN_DIGEST"
+        ls -l
         COMPUTED_HASH=$(sha256sum scan.json | awk '{print $1}')
         echo "The current computed hash for scan.json is: $COMPUTED_HASH"
         echo "If the two above hashes don't match, scan.json has been tampered with."
         echo "$SCAN_DIGEST scan.json" | sha256sum --strict --check --status || exit -2
-        ls -l
 
     - name: Install Cosign
       uses: sigstore/cosign-installer@59acb6260d9c0ba8f4a2f9d9b48431a222b68e20 # v3.5.0
