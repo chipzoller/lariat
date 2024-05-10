@@ -45,13 +45,12 @@ jobs:
       # IMAGE will be in format <registry>/<org>/<repo>@<digest> ex ghcr.io/chipzoller/zulu@sha256:1b85db3f261af51914867eeda20a25bedf72fa406619bcdd60f0658f27b2722d
       run: |
         tag=$(echo ${{ github.ref }} | cut -c11-)
-        IMAGE=$(ko build ./cmd/diskautoscaler --bare -t latest -t ${{ github.sha }} -t ${tag} --sbom=cyclonedx)
+        IMAGE=$(ko build ./cmd/diskautoscaler --bare -t latest -t ${{ github.sha }} -t ${tag} --sbom=cyclonedx) --sbom-dir=.
         echo "The image generated is: $IMAGE"
         echo "## Image summary" >> $GITHUB_STEP_SUMMARY
         echo "Built image: $IMAGE" >> $GITHUB_STEP_SUMMARY
         echo "IMAGE=$IMAGE" >> $GITHUB_ENV
         echo "image=$IMAGE" >> $GITHUB_OUTPUT
-      # echo "::set-output name=image::$IMAGE"
       env:
         KO_DOCKER_REPO: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
@@ -158,7 +157,7 @@ jobs:
 
     - name: Sign image
       run: |
-        cosign sign -a sha=${{ github.sha }} -a run_id=${{ github.run_id }} -a repo=${{ github.repository }} -a workflow=${{ github.workflow }} ${{ env.IMAGE }} -y
+        cosign sign -a sha=${{ github.sha }} -a run_id=${{ github.run_id }} -a repo=${{ github.repository }} -a workflow=${{ github.workflow }} ${{ env.IMAGE }} --output-signature=./signature.sig -y
         echo "## Supply Chain Summary" >> $GITHUB_STEP_SUMMARY
         echo "Image signed: :heavy_check_mark:" >> $GITHUB_STEP_SUMMARY
       # env:
@@ -177,3 +176,12 @@ jobs:
         echo "Image vulnerability scan attested:  :heavy_check_mark:" >> $GITHUB_STEP_SUMMARY
       # env:
       #   COSIGN_EXPERIMENTAL: "true"
+
+    - name: Add SBOM to release assets
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          scan.json
+          sbom.json
+          signature.sig
+
