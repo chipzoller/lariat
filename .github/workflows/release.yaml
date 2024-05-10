@@ -45,7 +45,7 @@ jobs:
       # IMAGE will be in format <registry>/<org>/<repo>@<digest> ex ghcr.io/chipzoller/zulu@sha256:1b85db3f261af51914867eeda20a25bedf72fa406619bcdd60f0658f27b2722d
       run: |
         tag=$(echo ${{ github.ref }} | cut -c11-)
-        IMAGE=$(ko build ./cmd/diskautoscaler --bare -t latest -t ${{ github.sha }} -t ${tag} --sbom=cyclonedx --sbom-dir=./sbom.json)
+        IMAGE=$(ko build ./cmd/diskautoscaler --bare -t latest -t ${{ github.sha }} -t ${tag} --sbom=cyclonedx --sbom-dir=./)
         echo "The image generated is: $IMAGE"
         echo "## Image summary" >> $GITHUB_STEP_SUMMARY
         echo "Built image: $IMAGE" >> $GITHUB_STEP_SUMMARY
@@ -53,6 +53,11 @@ jobs:
         echo "image=$IMAGE" >> $GITHUB_OUTPUT
         echo "List files"
         ls -l
+        echo "Rename output SBOM file"
+        for file in *.cyclonedx.json; do
+          mv -- "$file" "sbom.json"
+          break # Only rename the first file
+        done
       env:
         KO_DOCKER_REPO: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
