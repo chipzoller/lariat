@@ -9,7 +9,7 @@ on:
       - "*"
   workflow_dispatch: {}
 env:
-  REGISTRY: ghcr.io
+  REGISTRY: gcr.io/kubecost1
   IMAGE_NAME: ${{ github.repository }}
 jobs:
   # Publish with ko build
@@ -33,12 +33,27 @@ jobs:
     - name: Setup ko
       run: go install github.com/google/ko@latest
 
-    - name: Log in to GHCR
-      uses: docker/login-action@e92390c5fb421da1463c202d546fed0ec5c39f20 # v3.1.0
+    - name: Authenticate to GCP
+      uses: google-github-actions/auth@v1
       with:
-        registry: ${{ env.REGISTRY }}
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+        workload_identity_provider: projects/416184586880/locations/global/workloadIdentityPools/integrations/providers/github-provider
+        service_account: github-actions@kubecost1.iam.gserviceaccount.com
+
+    - name: Setup gcloud
+      uses: google-github-actions/setup-gcloud@v1
+      with:
+        project_id: kubecost1
+
+    - name: gcloud auth configure-docker
+      run: |
+        gcloud --quiet auth configure-docker
+
+    # - name: Log in to GHCR
+    #   uses: docker/login-action@e92390c5fb421da1463c202d546fed0ec5c39f20 # v3.1.0
+    #   with:
+    #     registry: ${{ env.REGISTRY }}
+    #     username: ${{ github.actor }}
+    #     password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Publish image and SBOM (CycloneDX)
       id: ko-build
@@ -87,10 +102,11 @@ jobs:
     uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v2.0.0
     with:
       digest: "${{ needs.build.outputs.digest }}"
-      registry-username: ${{ github.actor }}
-      image: ghcr.io/${{ github.repository }}
-    secrets:
-      registry-password: ${{ secrets.GITHUB_TOKEN }}
+      image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+      gcp-workload-identity-provider: projects/416184586880/locations/global/workloadIdentityPools/integrations/providers/github-provider
+      gcp-service-account: github-actions@kubecost1.iam.gserviceaccount.com
+    # secrets:
+    #   registry-password: ${{ secrets.GITHUB_TOKEN }}
 
   # Scan the image using Trivy. Check the hash of the scan file to ensure no tampering between jobs.
   scan:
@@ -138,6 +154,21 @@ jobs:
       SCAN_DIGEST: "${{ needs.scan.outputs.scan-digest }}"
     needs: [provenance, scan, build]
     steps:
+    - name: Authenticate to GCP
+      uses: google-github-actions/auth@v1
+      with:
+        workload_identity_provider: projects/416184586880/locations/global/workloadIdentityPools/integrations/providers/github-provider
+        service_account: github-actions@kubecost1.iam.gserviceaccount.com
+
+    - name: Setup gcloud
+      uses: google-github-actions/setup-gcloud@v1
+      with:
+        project_id: kubecost1
+
+    - name: gcloud auth configure-docker
+      run: |
+        gcloud --quiet auth configure-docker
+
     - name: Download files
       uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
       with:
@@ -160,13 +191,6 @@ jobs:
       uses: sigstore/cosign-installer@59acb6260d9c0ba8f4a2f9d9b48431a222b68e20 # v3.5.0
       with:
         cosign-release: v2.2.4
-
-    - name: Log in to GHCR
-      uses: docker/login-action@e92390c5fb421da1463c202d546fed0ec5c39f20 # v3.1.0
-      with:
-        registry: ${{ env.REGISTRY }}
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Sign image
       run: |
