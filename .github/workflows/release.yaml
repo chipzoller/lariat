@@ -49,7 +49,7 @@ jobs:
         echo "The image generated is: $IMAGE"
         echo "## Image summary" >> $GITHUB_STEP_SUMMARY
         echo "Built image: $IMAGE" >> $GITHUB_STEP_SUMMARY
-        echo "image=$IMAGE" >> $GITHUB_ENV
+        echo "IMAGE=$IMAGE" >> $GITHUB_ENV
         echo "image=$IMAGE" >> $GITHUB_OUTPUT
       # echo "::set-output name=image::$IMAGE"
       env:
