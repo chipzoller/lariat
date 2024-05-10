@@ -18,6 +18,7 @@ jobs:
     permissions:
       packages: write
       contents: read
+      id-token: write
     outputs:
       image: ${{ steps.ko-build.outputs.image }}
       digest: ${{ steps.set-digest.outputs.digest }}
