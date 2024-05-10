@@ -2,7 +2,7 @@
 ### (see https://github.com/slsa-framework/slsa-github-generator/blob/main/internal/builders/container/README.md)
 ### to generate a SLSA provenance type predicate for a container image built by ko and attesting to it and others
 ### using keyless signing.
-name: slsa-generic-keyless
+name: release
 on:
   push:
     tags:
@@ -45,7 +45,7 @@ jobs:
       # IMAGE will be in format <registry>/<org>/<repo>@<digest> ex ghcr.io/chipzoller/zulu@sha256:1b85db3f261af51914867eeda20a25bedf72fa406619bcdd60f0658f27b2722d
       run: |
         tag=$(echo ${{ github.ref }} | cut -c11-)
-        IMAGE=$(ko build ./cmd/diskautoscaler --preserve-import-paths -t latest -t ${{ github.sha }} -t ${tag} --sbom=cyclonedx)
+        IMAGE=$(ko build ./cmd/diskautoscaler --bare -t latest -t ${{ github.sha }} -t ${tag} --sbom=cyclonedx)
         echo "The image generated is: $IMAGE"
         echo "## Image summary" >> $GITHUB_STEP_SUMMARY
         echo "Built image: $IMAGE" >> $GITHUB_STEP_SUMMARY
@@ -157,7 +157,7 @@ jobs:
 
     - name: Sign image
       run: |
-        cosign sign -a sha=${{ github.sha }} -a run_id=${{ github.run_id }} -a repo=${{ github.repository }} -a workflow=${{ github.workflow }} ${{ env.IMAGE }}
+        cosign sign -a sha=${{ github.sha }} -a run_id=${{ github.run_id }} -a repo=${{ github.repository }} -a workflow=${{ github.workflow }} ${{ env.IMAGE }} -y
         echo "## Supply Chain Summary" >> $GITHUB_STEP_SUMMARY
         echo "Image signed: :heavy_check_mark:" >> $GITHUB_STEP_SUMMARY
       # env:
@@ -165,14 +165,14 @@ jobs:
 
     - name: Attest SBOM
       run: |
-        cosign attest --predicate sbom.json --type cyclonedx ${{ env.IMAGE }}
+        cosign attest --predicate sbom.json --type cyclonedx ${{ env.IMAGE }} -y
         echo "Image SBOM attested: :heavy_check_mark:" >> $GITHUB_STEP_SUMMARY
       # env:
       #   COSIGN_EXPERIMENTAL: "true"
 
     - name: Attest Scan
       run: |
-        cosign attest --predicate scan.json --type vuln ${{ env.IMAGE }}
+        cosign attest --predicate scan.json --type vuln ${{ env.IMAGE }} -y
         echo "Image vulnerability scan attested:  :heavy_check_mark:" >> $GITHUB_STEP_SUMMARY
       # env:
       #   COSIGN_EXPERIMENTAL: "true"
