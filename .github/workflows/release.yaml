@@ -10,7 +10,7 @@ on:
   workflow_dispatch: {}
 env:
   REGISTRY: gcr.io/kubecost1
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: lariat
 jobs:
   # Publish with ko build
   build:
@@ -22,6 +22,7 @@ jobs:
     outputs:
       image: ${{ steps.ko-build.outputs.image }}
       digest: ${{ steps.set-digest.outputs.digest }}
+      sbom-digest: ${{ steps.calculate-sbom-hash.outputs.sbom_digest }}
     steps:
     - name: Checkout code
       uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b # v4.1.5
@@ -48,13 +49,6 @@ jobs:
     - name: gcloud auth configure-docker
       run: |
         gcloud --quiet auth configure-docker
-
-    # - name: Log in to GHCR
-    #   uses: docker/login-action@e92390c5fb421da1463c202d546fed0ec5c39f20 # v3.1.0
-    #   with:
-    #     registry: ${{ env.REGISTRY }}
-    #     username: ${{ github.actor }}
-    #     password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Publish image and SBOM (CycloneDX)
       id: ko-build
@@ -84,6 +78,13 @@ jobs:
         DIGEST=$(echo -n $IMAGE | cut -d '@' -f2) 
         echo "Digest from image is: $DIGEST"
         echo "digest=$DIGEST" >> $GITHUB_OUTPUT
+
+    - name: Calculate SBOM file hash
+      id: calculate-sbom-hash
+      run: |
+        SBOM_DIGEST=$(sha256sum sbom.json | awk '{print $1}')
+        echo "sbom_digest=$SBOM_DIGEST" >> $GITHUB_OUTPUT
+        echo "Hash of sbom.json is: $SBOM_DIGEST"
 
     - name: Upload SBOM
       uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
@@ -153,6 +154,7 @@ jobs:
     env:
       IMAGE: "${{ needs.build.outputs.image }}"
       SCAN_DIGEST: "${{ needs.scan.outputs.scan-digest }}"
+      SBOM_DIGEST: "${{ needs.build.outputs.sbom-digest }}"
     needs: [provenance, scan, build]
     steps:
     - name: Authenticate to GCP
@@ -182,11 +184,17 @@ jobs:
       run: |
         set -euo pipefail
         echo "Hash of scan.json should be: $SCAN_DIGEST"
-        ls -l
         COMPUTED_HASH=$(sha256sum scan.json | awk '{print $1}')
         echo "The current computed hash for scan.json is: $COMPUTED_HASH"
         echo "If the two above hashes don't match, scan.json has been tampered with."
         echo "$SCAN_DIGEST scan.json" | sha256sum --strict --check --status || exit -2
+        echo "--------------------------------"
+        echo "Hash of sbom.json should be: $SBOM_DIGEST"
+        COMPUTED_HASH=$(sha256sum sbom.json | awk '{print $1}')
+        echo "The current computed hash for sbom.json is: $COMPUTED_HASH"
+        echo "If the two above hashes don't match, sbom.json has been tampered with."
+        echo "$SBOM_DIGEST scan.json" | sha256sum --strict --check --status || exit -2
+
 
     - name: Install Cosign
       uses: sigstore/cosign-installer@59acb6260d9c0ba8f4a2f9d9b48431a222b68e20 # v3.5.0
@@ -209,6 +217,10 @@ jobs:
         cosign attest --predicate scan.json --type vuln ${{ env.IMAGE }} -y
         echo "Image vulnerability scan attested:  :heavy_check_mark:" >> $GITHUB_STEP_SUMMARY
 
+    - name: Bump tag in install.yaml
+      run: |
+        yq -i 'select(.kind=="Deployment") .spec.template.spec.containers[0].image = "${{ env.IMAGE }}"' manifests/install.yaml
+
     - name: Add files to release assets
       uses: softprops/action-gh-release@v2
       with:
@@ -216,4 +228,4 @@ jobs:
           scan.json
           sbom.json
           signature.sig
-
+          manifests/install.yaml
