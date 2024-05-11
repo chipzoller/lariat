@@ -193,7 +193,7 @@ jobs:
         COMPUTED_HASH=$(sha256sum sbom.json | awk '{print $1}')
         echo "The current computed hash for sbom.json is: $COMPUTED_HASH"
         echo "If the two above hashes don't match, sbom.json has been tampered with."
-        echo "$SBOM_DIGEST scan.json" | sha256sum --strict --check --status || exit -2
+        echo "$SBOM_DIGEST sbom.json" | sha256sum --strict --check --status || exit -2
 
 
     - name: Install Cosign
