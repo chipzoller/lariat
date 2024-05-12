@@ -1,0 +1,4 @@
+builds:
+- id: main
+  ldflags:
+  - -s -w
