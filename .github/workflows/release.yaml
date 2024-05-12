@@ -104,7 +104,7 @@ jobs:
     uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v2.0.0
     with:
       digest: "${{ needs.build.outputs.digest }}"
-      image: gcr.io/kubecost1/${{ github.repository }}
+      image: gcr.io/kubecost1/${{ env.IMAGE_NAME }}
       gcp-workload-identity-provider: projects/416184586880/locations/global/workloadIdentityPools/integrations/providers/github-provider
       gcp-service-account: github-actions@kubecost1.iam.gserviceaccount.com
     # secrets:
