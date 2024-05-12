@@ -23,6 +23,9 @@ jobs:
       image: ${{ steps.ko-build.outputs.image }}
       digest: ${{ steps.set-digest.outputs.digest }}
       sbom-digest: ${{ steps.calculate-sbom-hash.outputs.sbom_digest }}
+      # Re-declaring the global env vars as outputs as a workaround for reusable workflows
+      REGISTRY: ${{ env.REGISTRY }}
+      IMAGE_NAME: ${{ env.IMAGE_NAME }}
     steps:
     - name: Checkout code
       uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b # v4.1.5
@@ -104,7 +107,7 @@ jobs:
     # https://github.com/actions/runner/issues/2372
     with:
       digest: "${{ needs.build.outputs.digest }}"
-      image: gcr.io/kubecost1/lariat
+      image: ${{ needs.build.outputs.REGISTRY }}/${{needs.build.outputs.IMAGE_NAME}}
       gcp-workload-identity-provider: projects/416184586880/locations/global/workloadIdentityPools/integrations/providers/github-provider
       gcp-service-account: github-actions@kubecost1.iam.gserviceaccount.com
     # secrets:
