@@ -61,9 +61,7 @@ jobs:
         echo "Built image: $IMAGE" >> $GITHUB_STEP_SUMMARY
         echo "IMAGE=$IMAGE" >> $GITHUB_ENV
         echo "image=$IMAGE" >> $GITHUB_OUTPUT
-        echo "List files"
-        ls -l
-        echo "Rename output SBOM file"
+        echo "Renaming output SBOM file to sbom.json."
         for file in *.cyclonedx.json; do
           mv -- "$file" "sbom.json"
           break # Only rename the first file
@@ -104,7 +102,7 @@ jobs:
     uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v2.0.0
     with:
       digest: "${{ needs.build.outputs.digest }}"
-      image: $REGISTRY/$IMAGE_NAME
+      image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
       gcp-workload-identity-provider: projects/416184586880/locations/global/workloadIdentityPools/integrations/providers/github-provider
       gcp-service-account: github-actions@kubecost1.iam.gserviceaccount.com
     # secrets:
