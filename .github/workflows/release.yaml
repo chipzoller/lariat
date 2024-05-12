@@ -39,13 +39,13 @@ jobs:
       run: go install github.com/google/ko@latest
 
     - name: Authenticate to GCP
-      uses: google-github-actions/auth@v1
+      uses: google-github-actions/auth@v2
       with:
         workload_identity_provider: projects/416184586880/locations/global/workloadIdentityPools/integrations/providers/github-provider
         service_account: github-actions@kubecost1.iam.gserviceaccount.com
 
     - name: Setup gcloud
-      uses: google-github-actions/setup-gcloud@v1
+      uses: google-github-actions/setup-gcloud@v2
       with:
         project_id: kubecost1
 
@@ -55,7 +55,7 @@ jobs:
 
     - name: Publish image and SBOM (CycloneDX)
       id: ko-build
-      # IMAGE will be in format <registry>/<org>/<repo>@<digest> ex ghcr.io/chipzoller/zulu@sha256:1b85db3f261af51914867eeda20a25bedf72fa406619bcdd60f0658f27b2722d
+      # IMAGE will be in format <registry>/<org>/<repo>@<digest> ex ghcr.io/johndoe/redis@sha256:1b85db3f261af51914867eeda20a25bedf72fa406619bcdd60f0658f27b2722d
       run: |
         tag=$(echo ${{ github.ref }} | cut -c11-)
         IMAGE=$(ko build ./cmd/diskautoscaler --bare -t latest -t ${{ github.sha }} -t ${tag} --sbom=cyclonedx --sbom-dir=./)
@@ -110,8 +110,6 @@ jobs:
       image: ${{ needs.build.outputs.REGISTRY }}/${{needs.build.outputs.IMAGE_NAME}}
       gcp-workload-identity-provider: projects/416184586880/locations/global/workloadIdentityPools/integrations/providers/github-provider
       gcp-service-account: github-actions@kubecost1.iam.gserviceaccount.com
-    # secrets:
-    #   registry-password: ${{ secrets.GITHUB_TOKEN }}
 
   # Scan the image using Trivy. Check the hash of the scan file to ensure no tampering between jobs.
   scan:
@@ -164,13 +162,13 @@ jobs:
       uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b # v4.1.5
 
     - name: Authenticate to GCP
-      uses: google-github-actions/auth@v1
+      uses: google-github-actions/auth@v2
       with:
         workload_identity_provider: projects/416184586880/locations/global/workloadIdentityPools/integrations/providers/github-provider
         service_account: github-actions@kubecost1.iam.gserviceaccount.com
 
     - name: Setup gcloud
-      uses: google-github-actions/setup-gcloud@v1
+      uses: google-github-actions/setup-gcloud@v2
       with:
         project_id: kubecost1
 
@@ -184,9 +182,9 @@ jobs:
         merge-multiple: true
         path: ./
 
-    # Detect potential tampering with the scan file by comparing the pre-upload digest in the previous
+    # Detect potential tampering with the files by comparing the pre-upload digest in the previous
     # job with the post-download digest in this job. Fail if there is a mismatch.
-    - name: Verify scan
+    - name: Verify scan and SBOM files
       run: |
         set -euo pipefail
         echo "Hash of scan.json should be: $SCAN_DIGEST"
