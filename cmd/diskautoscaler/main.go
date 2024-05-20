@@ -25,6 +25,8 @@ const (
 	logLevelConf = "log_level"
 )
 
+var CommitHash, Version string
+
 func initK8sRest() (*rest.Config, error) {
 	// Try to acquire an in-cluster config first
 	if config, err := rest.InClusterConfig(); err == nil {
@@ -70,6 +72,7 @@ func initK8sRest() (*rest.Config, error) {
 }
 
 func main() {
+	log.Info().Msgf("Running Disk Auto Scaler version: %s commitHash: %s", Version, CommitHash)
 	zerolog.TimeFieldFormat = time.RFC3339
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339})
 

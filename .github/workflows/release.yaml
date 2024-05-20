@@ -11,6 +11,8 @@ on:
 env:
   REGISTRY: ghcr.io/chipzoller
   IMAGE_NAME: lariat
+  VERSION: $(echo ${{ github.ref }} | cut -c11-)
+  COMMIT_HASH: ${{ github.sha }}
 jobs:
   # Publish with ko build
   build:
